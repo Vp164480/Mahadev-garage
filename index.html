@@ -719,18 +719,40 @@
     </div>
   </div>
 </div>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', async () => {
-    try {
-      const registration = await navigator.serviceWorker.register('/Mahadev-garage/sw.js');
-      console.log('Service Worker Registered:', registration.scope);
-    } catch (error) {
-      console.error('Service Worker Registration Failed:', error);
-    }
-  });
-}
+
 </script>
-  
+  <script>
+
+if ("serviceWorker" in navigator) {
+
+window.addEventListener("load", async () => {
+
+try {
+
+const registration = await navigator.serviceWorker.register(
+"/Mahadev-garage/sw.js",
+{
+scope: "/Mahadev-garage/"
+}
+);
+
+console.log("Service Worker Registered", registration);
+
+} catch (err) {
+
+console.error("Service Worker Failed", err);
+
+}
+
+});
+
+}
+
+</script>
+
+</body>
+
+</html>
+
 </body>
 </html>
