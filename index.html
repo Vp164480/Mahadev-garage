@@ -692,64 +692,86 @@
       <h2 class="modal-title">🏪 Shop Details</h2>
       <button class="modal-close" onclick="closeShopInfoModal()">✕</button>
     </div>
+
     <div class="modal-body">
-      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Yeh details PDF invoices aur job cards mein dikhenge.</p>
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">
+        Yeh details PDF invoices aur job cards mein dikhenge.
+      </p>
+
       <form id="shop-info-form" onsubmit="saveShopInfoForm(event)" autocomplete="off">
+
         <div class="form-group full">
           <label class="form-label">Shop Name</label>
-          <input type="text" class="form-input" id="shop-name-input" placeholder="e.g. MAHADEV AUTO GARAGE" />
+          <input
+            type="text"
+            class="form-input"
+            id="shop-name-input"
+            placeholder="e.g. MAHADEV AUTO GARAGE">
         </div>
+
         <div class="form-group full">
           <label class="form-label">Subtitle</label>
-          <input type="text" class="form-input" id="shop-subtitle-input" placeholder="e.g. Auto Parts &amp; Service Center" />
+          <input
+            type="text"
+            class="form-input"
+            id="shop-subtitle-input"
+            placeholder="e.g. Auto Parts &amp; Service Center">
         </div>
+
         <div class="form-group full">
           <label class="form-label">Address</label>
-          <textarea class="form-input" id="shop-address-input" placeholder="e.g. Main Road, Indore, MP" rows="2" style="resize:vertical"></textarea>
+          <textarea
+            class="form-input"
+            id="shop-address-input"
+            rows="2"
+            style="resize:vertical"
+            placeholder="e.g. Main Road, Indore, MP"></textarea>
         </div>
+
         <div class="form-group full">
           <label class="form-label">Phone Number</label>
-          <input type="tel" class="form-input" id="shop-phone-input" placeholder="e.g. 9876543210" />
+          <input
+            type="tel"
+            class="form-input"
+            id="shop-phone-input"
+            placeholder="e.g. 9876543210">
         </div>
+
         <div class="form-actions">
-          <button type="button" class="btn btn-secondary" onclick="closeShopInfoModal()">Cancel</button>
-          <button type="submit" class="btn btn-primary">💾 Save</button>
+          <button type="button" class="btn btn-secondary" onclick="closeShopInfoModal()">
+            Cancel
+          </button>
+
+          <button type="submit" class="btn btn-primary">
+            💾 Save
+          </button>
         </div>
+
       </form>
     </div>
   </div>
 </div>
 
-</script>
-  <script>
-
+<script>
 if ("serviceWorker" in navigator) {
+  window.addEventListener("load", async () => {
+    try {
+      const registration = await navigator.serviceWorker.register(
+        "/Mahadev-garage/sw.js",
+        {
+          scope: "/Mahadev-garage/"
+        }
+      );
 
-window.addEventListener("load", async () => {
+      console.log("Service Worker Registered:", registration);
 
-try {
-
-const registration = await navigator.serviceWorker.register(
-"/Mahadev-garage/sw.js",
-{
-scope: "/Mahadev-garage/"
+    } catch (err) {
+      console.error("Service Worker Failed:", err);
+    }
+  });
 }
-);
-
-console.log("Service Worker Registered", registration);
-
-} catch (err) {
-
-console.error("Service Worker Failed", err);
-
-}
-
-});
-
-}
-  </script>
+</script>
 
 </body>
-
 </html>
 
