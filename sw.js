@@ -12,7 +12,7 @@ const APP_SHELL = [
   "/icon-192.png",
   "/icon-512.png",
 
-  "/assets/main-C-ukJMIA.js",
+  "/assets/main-C-ukJMlA.js",
   "/assets/index.es-CeD_mz3P.js",
   "/assets/admin-B9ookjHz.js",
   "/assets/pin-KJ0oEqrR.js",
