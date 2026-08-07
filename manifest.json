@@ -1,14 +1,21 @@
 {
+  "id": "/Mahadev-garage/",
   "name": "MAHADEV AUTO GARAGE",
   "short_name": "Mahadev Garage",
   "description": "Inventory Management System for Mahadev Auto Garage",
-  "start_url": "/",
-  "scope": "/",
+
+  "start_url": "/Mahadev-garage/",
+  "scope": "/Mahadev-garage/",
+
   "display": "standalone",
+  "display_override": ["standalone"],
+
   "background_color": "#FF6B00",
   "theme_color": "#FF6B00",
+
   "orientation": "portrait-primary",
   "lang": "en-IN",
+  "dir": "ltr",
 
   "icons": [
     {
