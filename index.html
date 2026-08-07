@@ -1,0 +1,709 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <meta name="description" content="MAHADEV AUTO GARAGE - Inventory Management System" />
+  <meta name="theme-color" content="#FF6B00" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Mahadev Garage" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔧</text></svg>" />
+  <title>MAHADEV AUTO GARAGE</title>
+  <script type="module" crossorigin src="/assets/main-C-ukJMlA.js"></script>
+  <link rel="modulepreload" crossorigin href="/assets/pin-KJ0oEqrR.js">
+  <link rel="stylesheet" crossorigin href="/assets/pin-C2qdixNe.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="/" class="logo">
+      <div class="logo-icon">🔧</div>
+      <div class="logo-text">
+        <span class="logo-title">MAHADEV AUTO GARAGE</span>
+        <span class="logo-sub">Inventory System</span>
+      </div>
+    </a>
+    <button class="header-jobcard-btn" onclick="openJobCardForm()" title="New Job Card">
+      <span>📋</span>
+      <span class="header-jobcard-label">Job Card</span>
+    </button>
+  </div>
+</header>
+
+<!-- HOME SECTION -->
+<div id="section-home" class="app-section">
+  <div class="stock-alert-bar" id="stock-alert-bar"></div>
+  <div class="search-section">
+    <div class="search-row">
+      <div class="search-wrap">
+        <svg class="search-icon-svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+        </svg>
+        <input type="search" class="search-input" id="search-input" placeholder="Search by name, part number, brand..." autocomplete="off" />
+        <div class="search-btns">
+          <button class="search-action-btn" id="voice-btn" onclick="startVoiceSearch()" title="Voice Search">🎤</button>
+          <button class="search-action-btn" onclick="openScanner()" title="Scan Barcode">📷</button>
+        </div>
+      </div>
+    </div>
+    <div class="filter-row">
+      <select class="filter-select" id="category-filter"></select>
+      <span class="results-count" id="results-count"><span>0</span> products</span>
+    </div>
+  </div>
+  <div class="controls-row">
+    <select class="sort-select" id="sort-select">
+      <option value="name-asc">Name A–Z</option>
+      <option value="name-desc">Name Z–A</option>
+      <option value="price-asc">Price Low–High</option>
+      <option value="price-desc">Price High–Low</option>
+      <option value="stock-asc">Stock Low–High</option>
+      <option value="stock-desc">Stock High–Low</option>
+      <option value="newest">Newest First</option>
+    </select>
+    <button class="view-btn active" id="view-grid-btn" onclick="setView('grid')" title="Grid View">⊞</button>
+    <button class="view-btn" id="view-list-btn" onclick="setView('list')" title="List View">☰</button>
+  </div>
+  <div class="products-section">
+    <div class="products-grid" id="products-grid">
+      <div class="loading"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- JOB CARD SECTION -->
+<div id="section-jobcard" class="app-section" style="display:none">
+  <div class="sec-topbar">
+    <h2 class="sec-title">📋 Job Cards</h2>
+    <button class="btn btn-primary btn-sm" onclick="openJobCardForm()">＋ New</button>
+  </div>
+  <div class="section-search-row">
+    <input type="search" class="section-search-input" placeholder="🔍 Search by name, bike, mobile, JC#..." oninput="onJCSearch(this.value)" autocomplete="off" />
+  </div>
+  <div class="jc-filter-row">
+    <button class="jc-filter-btn active" data-status="All" onclick="setJCStatusFilter('All')">All</button>
+    <button class="jc-filter-btn" data-status="Pending" onclick="setJCStatusFilter('Pending')">⏳ Pending</button>
+    <button class="jc-filter-btn" data-status="In Progress" onclick="setJCStatusFilter('In Progress')">🔧 In Progress</button>
+    <button class="jc-filter-btn" data-status="Completed" onclick="setJCStatusFilter('Completed')">✅ Completed</button>
+    <button class="jc-filter-btn" data-status="Delivered" onclick="setJCStatusFilter('Delivered')">🚚 Delivered</button>
+  </div>
+  <div id="jobcards-list" class="jc-list"></div>
+</div>
+
+<!-- BILL SECTION -->
+<div id="section-bill" class="app-section" style="display:none">
+  <div id="bill-step-1">
+    <div class="sec-topbar">
+      <h2 class="sec-title">🧾 Bill Banayein</h2>
+    </div>
+    <p class="sec-hint">Job Card chunein:</p>
+    <div id="bill-jc-list" class="jc-list"></div>
+  </div>
+  <div id="bill-step-2" style="display:none">
+    <div class="sec-topbar">
+      <button class="back-btn" onclick="billBackToStep1()">← Wapas</button>
+      <h2 class="sec-title">🧾 Parts Add Karein</h2>
+      <button class="btn btn-sm btn-danger" onclick="confirmDeleteJobCardFromBill()" title="Delete Job Card">🗑️ Delete</button>
+    </div>
+    <div class="bill-customer-card" id="bill-customer-card"></div>
+    <div class="bill-items-wrap">
+      <div class="bill-items-header">
+        <span class="bill-items-title">Parts / Services</span>
+        <button class="btn btn-sm btn-primary" onclick="showBillItemForm()">＋ Add</button>
+      </div>
+      <div id="bill-items-list"></div>
+      <div class="bill-add-form" id="bill-add-form" style="display:none">
+        <div class="bill-form-title" id="bill-form-title">＋ Part / Service Add Karein</div>
+        <input type="text" id="bill-item-name" list="parts-list" class="form-input" placeholder="Part / Service naam *" autocomplete="off" oninput="onBillNameInput(this.value)" />
+        <datalist id="parts-list">
+          <option value="Chain Wheel"><option value="Engine Oil"><option value="Gear Oil">
+          <option value="Fering"><option value="Mudguard"><option value="Front Brake">
+          <option value="Rear Brake"><option value="Brake Oil"><option value="Clutch Wire">
+          <option value="Accelerator Wire"><option value="Switch"><option value="Headlight Bulb">
+          <option value="Indicator Bulb"><option value="Spark Plug"><option value="Air Filter">
+          <option value="Fuel Filter"><option value="Battery"><option value="Tyre Front">
+          <option value="Tyre Rear"><option value="Tube"><option value="Shock Absorber">
+          <option value="Silencer"><option value="Seat"><option value="Handle Grip">
+          <option value="Labour Charge"><option value="Washing">
+        </datalist>
+        <div id="bill-stock-hint" class="bill-stock-hint" style="display:none"></div>
+        <div class="bill-add-row">
+          <input type="number" id="bill-item-qty" class="form-input" placeholder="Qty" min="1" value="1" oninput="onBillQtyInput()" />
+          <input type="number" id="bill-item-price" class="form-input" placeholder="Price ₹" min="0" />
+        </div>
+        <div class="bill-add-actions">
+          <button class="btn btn-secondary btn-sm" onclick="hideBillItemForm()">Cancel</button>
+          <button class="btn btn-primary btn-sm" id="bill-form-save-btn" onclick="addBillItem()">✓ Add</button>
+        </div>
+      </div>
+    </div>
+    <div class="bill-totals-wrap">
+      <div class="bill-total-row"><span>Parts Total</span><span id="bill-parts-total">₹0</span></div>
+      <div class="bill-total-row">
+        <label for="bill-labor">Labour Charge</label>
+        <input type="number" id="bill-labor" class="form-input small-input" value="0" min="0" oninput="updateBillTotal()" />
+      </div>
+      <div class="bill-total-row">
+        <label for="bill-discount">Discount</label>
+        <input type="number" id="bill-discount" class="form-input small-input" value="0" min="0" oninput="updateBillTotal()" />
+      </div>
+      <div class="bill-total-row grand-total"><span>TOTAL</span><span id="bill-grand-total">₹0</span></div>
+      <div class="bill-pay-divider"></div>
+      <div class="bill-total-row bill-paid-row">
+        <label for="bill-amount-paid" style="font-weight:600;color:var(--success,#10b981)">💰 Amount Paid</label>
+        <input type="number" id="bill-amount-paid" class="form-input small-input" value="0" min="0" step="0.01" oninput="updateBillTotal()" />
+      </div>
+      <div class="bill-total-row">
+        <span style="color:#e53e3e;font-weight:600">Due Amount</span>
+        <span id="bill-due-amount" class="due-amount-display">₹0</span>
+      </div>
+      <div class="bill-total-row">
+        <span>Payment Status</span>
+        <span id="bill-payment-status-badge" class="pay-badge pay-unpaid">UNPAID</span>
+      </div>
+    </div>
+    <button class="btn btn-primary full-btn" onclick="generateBill()">🧾 Bill Generate Karein</button>
+  </div>
+</div>
+
+<!-- HISTORY SECTION -->
+<div id="section-history" class="app-section" style="display:none">
+  <div class="sec-topbar">
+    <h2 class="sec-title">📜 History</h2>
+  </div>
+  <div id="history-stats-row" class="history-stats-row"></div>
+  <div class="section-search-row">
+    <input type="search" class="section-search-input" placeholder="🔍 Bill#, INV#, JC#, name, bike, PAID, UNPAID..." oninput="onHistorySearch(this.value)" autocomplete="off" />
+  </div>
+  <div class="history-tabs">
+    <button class="hist-tab active" id="htab-bills" onclick="switchHistoryTab('bills')">🧾 Bills</button>
+    <button class="hist-tab" id="htab-reports" onclick="switchHistoryTab('reports')">📊 Reports</button>
+  </div>
+  <div class="hist-pay-filter-row" id="hist-pay-filter-row">
+    <button class="hist-pay-filter-btn active" data-pay-status="All" onclick="setHistoryPayFilter('All')">All</button>
+    <button class="hist-pay-filter-btn" data-pay-status="PAID" onclick="setHistoryPayFilter('PAID')">✅ Paid</button>
+    <button class="hist-pay-filter-btn" data-pay-status="PARTIALLY PAID" onclick="setHistoryPayFilter('PARTIALLY PAID')">🟡 Partial</button>
+    <button class="hist-pay-filter-btn" data-pay-status="UNPAID" onclick="setHistoryPayFilter('UNPAID')">🔴 Unpaid</button>
+  </div>
+  <div id="history-list" class="history-list"></div>
+  <div id="reports-pane" class="reports-pane" style="display:none"></div>
+</div>
+
+
+<button class="fab" id="fab-btn" onclick="openAddModal()" title="Add Product">＋</button>
+
+<!-- SETTINGS DRAWER -->
+<div class="settings-backdrop" id="settings-backdrop" onclick="closeSettingsDrawer()"></div>
+<div class="settings-drawer" id="settings-drawer">
+  <div class="settings-drawer-header">
+    <span class="settings-drawer-title">⚙️ Settings</span>
+    <button class="settings-close-btn" onclick="closeSettingsDrawer()">✕</button>
+  </div>
+  <div class="settings-drawer-body">
+    <div class="settings-item" onclick="toggleBuyPrice()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">👁️</span>
+        <div>
+          <div class="settings-item-label">Buy Price</div>
+          <div class="settings-item-sub">Cards par buy price dikhao/chhupaao</div>
+        </div>
+      </div>
+      <span class="settings-item-badge" id="buyprice-badge">Dikh rahi</span>
+    </div>
+    <div class="settings-item" onclick="toggleTheme()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon" id="theme-icon-drawer">🌙</span>
+        <div>
+          <div class="settings-item-label">Theme</div>
+          <div class="settings-item-sub">Light / Dark mode switch karein</div>
+        </div>
+      </div>
+      <span class="settings-item-badge" id="theme-badge">Light</span>
+    </div>
+    <div class="settings-item" onclick="lockApp(); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">🔒</span>
+        <div>
+          <div class="settings-item-label">App Lock</div>
+          <div class="settings-item-sub">PIN se app band karein</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-item" onclick="openRecycleBinModal(); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">♻️</span>
+        <div>
+          <div class="settings-item-label">Recycle Bin</div>
+          <div class="settings-item-sub">Delete kiye hue Job Cards restore karein (30 din)</div>
+        </div>
+      </div>
+      <span style="color:var(--text-muted);font-size:18px;">›</span>
+    </div>
+    <div class="settings-section-label">📦 Data Backup</div>
+    <div class="settings-item" onclick="exportBillsData(); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">⬇️</span>
+        <div>
+          <div class="settings-item-label">Export JSON Backup</div>
+          <div class="settings-item-sub">Job Cards + Bills ka complete JSON backup</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-item" onclick="exportCSVData(); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">📊</span>
+        <div>
+          <div class="settings-item-label">Export Bills CSV</div>
+          <div class="settings-item-sub">Bills ki spreadsheet CSV file</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-item" onclick="exportProductsCSV(); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">📦</span>
+        <div>
+          <div class="settings-item-label">Export Products CSV</div>
+          <div class="settings-item-sub">Product list aur stock CSV mein</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-item" onclick="importBillsData(); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">⬆️</span>
+        <div>
+          <div class="settings-item-label">Import / Restore Backup</div>
+          <div class="settings-item-sub">JSON backup file se data restore karein</div>
+        </div>
+      </div>
+    </div>
+    <a href="admin.html" class="settings-item" style="text-decoration:none;color:inherit;">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">🛠️</span>
+        <div>
+          <div class="settings-item-label">Admin Panel</div>
+          <div class="settings-item-sub">Products, import/export, PIN manage karein</div>
+        </div>
+      </div>
+      <span style="color:var(--text-muted);font-size:18px;">›</span>
+    </a>
+
+    <div class="settings-section-label">💾 Storage &amp; Archive</div>
+    <div id="storage-status-row" class="storage-status-row"></div>
+    <div class="settings-item" onclick="doSetupOrChangeStorage()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">📁</span>
+        <div>
+          <div class="settings-item-label">Setup / Change Storage Folder</div>
+          <div class="settings-item-sub">Documents/Mahadev Auto Garage folder chunein</div>
+        </div>
+      </div>
+      <span class="settings-item-badge" id="storage-folder-badge">Not Set</span>
+    </div>
+    <div class="settings-item" onclick="doTestStoragePermission()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">✅</span>
+        <div>
+          <div class="settings-item-label">Test Storage Permission</div>
+          <div class="settings-item-sub">Check karein ki permission sahi hai</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-item" onclick="doExportAllPDFs(); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">📄</span>
+        <div>
+          <div class="settings-item-label">Export All PDFs</div>
+          <div class="settings-item-sub">Saare Job Cards aur Bills ke PDF save karein</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-item" onclick="doArchiveBackupNow(); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">💾</span>
+        <div>
+          <div class="settings-item-label">Backup Now</div>
+          <div class="settings-item-sub">JSON backup storage folder mein save karein</div>
+        </div>
+      </div>
+    </div>
+    <div class="settings-item" onclick="openViewFilesModal('invoices'); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">🧾</span>
+        <div>
+          <div class="settings-item-label">View Invoice PDFs</div>
+          <div class="settings-item-sub">Saved invoice PDFs dekho aur kholein</div>
+        </div>
+      </div>
+      <span style="color:var(--text-muted);font-size:18px;">›</span>
+    </div>
+    <div class="settings-item" onclick="openViewFilesModal('jobCards'); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">📋</span>
+        <div>
+          <div class="settings-item-label">View Job Card PDFs</div>
+          <div class="settings-item-sub">Saved job card PDFs dekho aur kholein</div>
+        </div>
+      </div>
+      <span style="color:var(--text-muted);font-size:18px;">›</span>
+    </div>
+    <div class="settings-item" onclick="openViewFilesModal('backup'); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">🗂️</span>
+        <div>
+          <div class="settings-item-label">View Backup Files</div>
+          <div class="settings-item-sub">Storage folder ke backup files dekho</div>
+        </div>
+      </div>
+      <span style="color:var(--text-muted);font-size:18px;">›</span>
+    </div>
+
+    <div class="settings-section-label">🏪 Shop Info</div>
+    <div class="settings-item" onclick="openShopInfoModal(); closeSettingsDrawer()">
+      <div class="settings-item-left">
+        <span class="settings-item-icon">🏷️</span>
+        <div>
+          <div class="settings-item-label">Shop Details</div>
+          <div class="settings-item-sub">PDF mein naam, address, phone dikhayein</div>
+        </div>
+      </div>
+      <span style="color:var(--text-muted);font-size:18px;">›</span>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav">
+  <button class="bottom-nav-item active" id="bnav-home" onclick="switchSection('home')">
+    <span class="bottom-nav-icon">🏠</span>
+    <span class="bottom-nav-label">Home</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-bill" onclick="switchSection('bill')">
+    <span class="bottom-nav-icon">🧾</span>
+    <span class="bottom-nav-label">Bill</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-history" onclick="switchSection('history')">
+    <span class="bottom-nav-icon">📜</span>
+    <span class="bottom-nav-label">History</span>
+  </button>
+  <button class="bottom-nav-item" id="bnav-settings" onclick="openSettingsDrawer()">
+    <span class="bottom-nav-icon">⚙️</span>
+    <span class="bottom-nav-label">Settings</span>
+  </button>
+</nav>
+
+<div class="toast-container" id="toast-container"></div>
+
+<!-- JOB CARD FORM MODAL -->
+<div class="modal-overlay" id="jobcard-modal">
+  <div class="modal modal-tall">
+    <div class="modal-header">
+      <h2 class="modal-title" id="jc-modal-title">📋 New Job Card</h2>
+      <button class="modal-close" onclick="closeJobCardForm()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="jobcard-form" onsubmit="saveJobCardForm(event)" autocomplete="off">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Customer Name</label>
+            <input type="text" class="form-input" id="jc-name" placeholder="e.g. Ramesh Kumar (optional)" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mobile Number *</label>
+            <input type="tel" class="form-input" id="jc-mobile" placeholder="9876543210" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bike Number *</label>
+            <input type="text" class="form-input" id="jc-bikeno" placeholder="MP09AB1234" required style="text-transform:uppercase" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Vehicle Company</label>
+            <select class="form-select" id="jc-company">
+              <option value="">-- Select --</option>
+              <option>Hero</option><option>Bajaj</option><option>Honda</option>
+              <option>TVS</option><option>Yamaha</option><option>Suzuki</option>
+              <option>Royal Enfield</option><option>KTM</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Bike Model</label>
+            <input type="text" class="form-input" id="jc-bikemodel" placeholder="e.g. Splendor, Pulsar" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Brand / Variant</label>
+            <input type="text" class="form-input" id="jc-bikebrand" placeholder="e.g. Plus, Pro" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Odometer (km)</label>
+            <input type="text" class="form-input" id="jc-odometer" placeholder="e.g. 45000" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select class="form-select" id="jc-status">
+              <option value="Pending">⏳ Pending</option>
+              <option value="In Progress">🔧 In Progress</option>
+              <option value="Completed">✅ Completed</option>
+              <option value="Delivered">🚚 Delivered</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Work Details</label>
+            <textarea class="form-input" id="jc-work" placeholder="e.g. Engine oil change, brake repair..." rows="2" style="resize:vertical"></textarea>
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Notes</label>
+            <textarea class="form-input" id="jc-notes" placeholder="Extra notes (optional)" rows="2" style="resize:vertical"></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeJobCardForm()">Cancel</button>
+          <button type="submit" class="btn btn-primary">💾 Save Job Card</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- RECYCLE BIN MODAL -->
+<div class="modal-overlay" id="recycle-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">♻️ Recycle Bin</h2>
+      <button class="modal-close" onclick="closeRecycleBinModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">30 din baad automatically delete ho jaata hai. Restore karein ya permanently delete karein.</p>
+      <div id="recycle-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- BILL PREVIEW MODAL -->
+<div class="modal-overlay" id="bill-preview-modal">
+  <div class="modal bill-preview-modal">
+    <div class="modal-header">
+      <h2 class="modal-title">🧾 Bill</h2>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+        <button class="btn btn-sm btn-primary" onclick="shareBill()">📤 Share</button>
+        <button class="btn btn-sm btn-secondary" onclick="downloadBillAsPDF()">📄 PDF</button>
+        <button class="btn btn-sm btn-secondary" onclick="downloadBillAsHTML()">💾 HTML</button>
+        <button class="btn btn-sm btn-secondary" onclick="printBill()">🖨️ Print</button>
+        <button class="modal-close" onclick="closeBillPreview()">✕</button>
+      </div>
+    </div>
+    <div class="modal-body" id="bill-preview-content"></div>
+  </div>
+</div>
+
+<!-- PRODUCT MODAL -->
+<div class="modal-overlay" id="product-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modal-title">Add New Product</h2>
+      <button class="modal-close" onclick="closeProductModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="product-form">
+        <div class="form-grid">
+          <div class="form-group full">
+            <label class="form-label">Product Name *</label>
+            <input type="text" class="form-input" id="form-name" placeholder="e.g. Air Filter - Universal" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Part Number</label>
+            <input type="text" class="form-input" id="form-partno" placeholder="e.g. AF-001 (optional)" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Barcode</label>
+            <input type="text" class="form-input" id="form-barcode" placeholder="Scan or enter barcode" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Brand</label>
+            <input type="text" class="form-input" id="form-brand" placeholder="e.g. Bosch" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category</label>
+            <select class="form-select" id="form-category"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Buy Price (₹)</label>
+            <input type="number" class="form-input" id="form-buy" placeholder="0" min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Sell Price (₹)</label>
+            <input type="number" class="form-input" id="form-sell" placeholder="0" min="0" step="0.01" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Stock Quantity</label>
+            <input type="number" class="form-input" id="form-stock" placeholder="0" min="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Min Stock Alert</label>
+            <input type="number" class="form-input" id="form-minstock" placeholder="5" min="0" value="5" />
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Unit</label>
+            <select class="form-select" id="form-unit">
+              <option value="pcs">pcs</option>
+              <option value="litre">litre</option>
+              <option value="ml">ml</option>
+              <option value="kg">kg</option>
+              <option value="g">g</option>
+              <option value="set">set</option>
+              <option value="pair">pair</option>
+              <option value="box">box</option>
+              <option value="roll">roll</option>
+              <option value="metre">metre</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Supplier Name</label>
+            <input type="text" class="form-input" id="form-supplier" placeholder="e.g. Sharma Traders" />
+          </div>
+          <div class="form-group full">
+            <label class="form-label">Description</label>
+            <textarea class="form-textarea" id="form-desc" placeholder="Optional product description..."></textarea>
+          </div>
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeProductModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">💾 Save Product</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- SCANNER MODAL -->
+<div class="modal-overlay" id="scanner-modal">
+  <div class="modal barcode-modal">
+    <div class="modal-header">
+      <h2 class="modal-title">📷 Scan Barcode</h2>
+      <button class="modal-close" onclick="closeScannerModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="camera-container">
+        <video id="scanner-video" autoplay muted playsinline></video>
+        <div class="scanner-overlay">
+          <div class="scanner-frame">
+            <div class="scanner-line"></div>
+          </div>
+        </div>
+      </div>
+      <div class="barcode-result" id="barcode-result">Point camera at barcode</div>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeScannerModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="useBarcodeManually()">✔ Use This Code</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DELETE MODAL -->
+<div class="modal-overlay" id="confirm-modal">
+  <div class="modal confirm-modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Confirm Delete</h2>
+      <button class="modal-close" onclick="closeConfirmModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p class="confirm-message" id="confirm-message">Are you sure you want to delete this product?</p>
+      <div class="form-actions">
+        <button class="btn btn-secondary" onclick="closeConfirmModal()">Cancel</button>
+        <button class="btn btn-danger" onclick="doDelete()">🗑️ Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIVE PAYMENT MODAL -->
+<div class="modal-overlay" id="receive-payment-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">💰 Receive Payment</h2>
+      <button class="modal-close" onclick="closeReceivePaymentModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="receive-pay-info">
+        <div class="receive-pay-row"><span class="rp-lbl">Bill #</span><span id="receive-pay-bill-no" class="rp-val"></span></div>
+        <div class="receive-pay-row"><span class="rp-lbl">Customer</span><span id="receive-pay-customer" class="rp-val"></span></div>
+        <div class="receive-pay-row"><span class="rp-lbl">Grand Total</span><span id="receive-pay-grand" class="rp-val"></span></div>
+        <div class="receive-pay-row"><span class="rp-lbl">Already Paid</span><span id="receive-pay-paid" class="rp-val" style="color:var(--success,#10b981)"></span></div>
+        <div class="receive-pay-row"><span class="rp-lbl">Due Amount</span><span id="receive-pay-due" class="rp-val" style="color:#e53e3e;font-weight:700"></span></div>
+      </div>
+      <div class="form-group" style="margin-top:16px">
+        <label class="form-label">Enter Amount Received (₹) *</label>
+        <input type="number" class="form-input" id="receive-pay-amount" min="0.01" step="0.01" placeholder="Enter amount..." />
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="closeReceivePaymentModal()">Cancel</button>
+        <button type="button" class="btn btn-success" onclick="doReceivePayment()">✅ Confirm Payment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CUSTOMER STATS MODAL -->
+<div class="modal-overlay" id="customer-stats-modal">
+  <div class="modal modal-tall">
+    <div class="modal-header">
+      <h2 class="modal-title" id="customer-stats-title">👤 Customer</h2>
+      <button class="modal-close" onclick="closeCustomerStats()">✕</button>
+    </div>
+    <div class="modal-body" id="customer-stats-content"></div>
+  </div>
+</div>
+
+<!-- VIEW FILES MODAL -->
+<div class="modal-overlay" id="view-files-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="view-files-title">📄 Saved Files</h2>
+      <button class="modal-close" onclick="closeViewFilesModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div id="view-files-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- SHOP INFO MODAL -->
+<div class="modal-overlay" id="shop-info-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <h2 class="modal-title">🏪 Shop Details</h2>
+      <button class="modal-close" onclick="closeShopInfoModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Yeh details PDF invoices aur job cards mein dikhenge.</p>
+      <form id="shop-info-form" onsubmit="saveShopInfoForm(event)" autocomplete="off">
+        <div class="form-group full">
+          <label class="form-label">Shop Name</label>
+          <input type="text" class="form-input" id="shop-name-input" placeholder="e.g. MAHADEV AUTO GARAGE" />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Subtitle</label>
+          <input type="text" class="form-input" id="shop-subtitle-input" placeholder="e.g. Auto Parts &amp; Service Center" />
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Address</label>
+          <textarea class="form-input" id="shop-address-input" placeholder="e.g. Main Road, Indore, MP" rows="2" style="resize:vertical"></textarea>
+        </div>
+        <div class="form-group full">
+          <label class="form-label">Phone Number</label>
+          <input type="tel" class="form-input" id="shop-phone-input" placeholder="e.g. 9876543210" />
+        </div>
+        <div class="form-actions">
+          <button type="button" class="btn btn-secondary" onclick="closeShopInfoModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">💾 Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
