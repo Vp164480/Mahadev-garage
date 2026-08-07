@@ -1,265 +1,215 @@
-const CACHE_NAME = "mahadev-garage-v2";
+const CACHE_NAME = "mahadev-garage-v3";
 const FONT_CACHE = "mahadev-fonts-v1";
 
-// App shell files to pre-cache on install
 const APP_SHELL = [
-  "/",
-  "/index.html",
-  "/admin.html",
-  "/manifest.json",
+  "/Mahadev-garage/",
+  "/Mahadev-garage/index.html",
+  "/Mahadev-garage/admin.html",
+  "/Mahadev-garage/manifest.json",
 
-  "/logo.png",
-  "/icon-192.png",
-  "/icon-512.png",
+  "/Mahadev-garage/logo.png",
+  "/Mahadev-garage/icon-192.png",
+  "/Mahadev-garage/icon-512.png",
 
-  "/assets/main-C-ukJMlA.js",
-  "/assets/index.es-CeD_mz3P.js",
-  "/assets/admin-B9ookjHz.js",
-  "/assets/pin-KJ0oEqrR.js",
-  "/assets/html2canvas.esm-DXEQVQnt.js",
-  "/assets/purify.es-VaSPOPhr.js",
-  "/assets/pin-C2qdixNe.css",
+  "/Mahadev-garage/sql-wasm.js",
+  "/Mahadev-garage/sql-wasm.wasm",
 
-  "/sql-wasm.js",
-  "/sql-wasm.wasm"
+  "/Mahadev-garage/assets/main-C-ukJMlA.js",
+  "/Mahadev-garage/assets/index.es-CeD_mz3P.js",
+  "/Mahadev-garage/assets/admin-B9ookjHz.js",
+  "/Mahadev-garage/assets/pin-KJ0oEqrR.js",
+  "/Mahadev-garage/assets/html2canvas.esm-DXEQVQnt.js",
+  "/Mahadev-garage/assets/purify.es-VaSPOPhr.js",
+  "/Mahadev-garage/assets/pin-C2qdixNe.css"
 ];
 
-// ---- INSTALL: pre-cache app shell ----
+// INSTALL
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return Promise.allSettled(
-        APP_SHELL.map((url) =>
-          cache.add(url).catch(() => {})
-        )
-      );
-    }).then(() => self.skipWaiting())
+    caches.open(CACHE_NAME).then(async (cache) => {
+      await cache.addAll(APP_SHELL);
+      self.skipWaiting();
+    })
   );
 });
 
-// ---- ACTIVATE: delete old caches ----
+// ACTIVATE
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((k) => k !== CACHE_NAME && k !== FONT_CACHE)
-          .map((k) => caches.delete(k))
+          .filter((key) => key !== CACHE_NAME && key !== FONT_CACHE)
+          .map((key) => caches.delete(key))
       )
     ).then(() => self.clients.claim())
   );
 });
 
-// ---- FETCH: smart caching strategy ----
+// FETCH
 self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
 
-  // Skip non-GET and chrome-extension requests
-  if (request.method !== "GET") return;
-  if (url.protocol === "chrome-extension:") return;
+  if (event.request.method !== "GET") return;
 
-  // Google Fonts: cache-first (fonts don't change)
+  const url = new URL(event.request.url);
+
+  // Google Fonts
   if (
     url.origin === "https://fonts.googleapis.com" ||
     url.origin === "https://fonts.gstatic.com"
   ) {
-    event.respondWith(cacheFirst(request, FONT_CACHE));
+    event.respondWith(cacheFirst(event.request, FONT_CACHE));
     return;
   }
 
-  // HTML pages: network-first, fall back to cache
-  if (request.headers.get("accept")?.includes("text/html")) {
-    event.respondWith(networkFirstWithFallback(request));
+  // HTML pages
+  if (event.request.mode === "navigate") {
+    event.respondWith(networkFirst(event.request));
     return;
   }
 
-  // JS/CSS/images: stale-while-revalidate
-  event.respondWith(staleWhileRevalidate(request));
+  // Other files
+  event.respondWith(staleWhileRevalidate(event.request));
 });
 
-// ---- STRATEGIES ----
-
+// CACHE FIRST
 async function cacheFirst(request, cacheName) {
   const cache = await caches.open(cacheName);
+
   const cached = await cache.match(request);
   if (cached) return cached;
+
   try {
     const response = await fetch(request);
-    if (response.ok) cache.put(request, response.clone());
+
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+
     return response;
   } catch {
-    return new Response("Offline", { status: 503 });
+    return new Response("", { status: 503 });
   }
 }
 
-async function networkFirstWithFallback(request) {
+// NETWORK FIRST
+async function networkFirst(request) {
+
   const cache = await caches.open(CACHE_NAME);
+
   try {
     const response = await fetch(request);
-    if (response.ok) cache.put(request, response.clone());
+
+    if (response.ok) {
+      cache.put(request, response.clone());
+    }
+
     return response;
+
   } catch {
+
     const cached = await cache.match(request);
+
     if (cached) return cached;
-    // Fallback to root index.html for any navigation
-    const fallback = await cache.match("/") || await cache.match("/index.html");
+
+    const fallback =
+      await cache.match("/Mahadev-garage/index.html") ||
+      await cache.match("/Mahadev-garage/");
+
     if (fallback) return fallback;
-    return new Response(offlinePage(), {
-      headers: { "Content-Type": "text/html" },
-    });
+
+    return offlinePage();
   }
 }
 
+// STALE WHILE REVALIDATE
 async function staleWhileRevalidate(request) {
+
   const cache = await caches.open(CACHE_NAME);
+
   const cached = await cache.match(request);
-  const fetchPromise = fetch(request)
+
+  const networkFetch = fetch(request)
     .then((response) => {
-      if (response.ok) cache.put(request, response.clone());
+
+      if (response && response.ok) {
+        cache.put(request, response.clone());
+      }
+
       return response;
+
     })
     .catch(() => null);
-  return cached || (await fetchPromise) || new Response("", { status: 503 });
+
+  return cached || networkFetch;
 }
 
+// OFFLINE PAGE
 function offlinePage() {
-  return `<!DOCTYPE html>
+
+  return new Response(
+`<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Offline — MAHADEV AUTO GARAGE</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Offline</title>
+
 <style>
-  body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f5f6fa;color:#1a1d2e;text-align:center;padding:20px}
-  .box{max-width:340px}
-  .icon{font-size:64px;margin-bottom:16px}
-  h1{font-size:20px;font-weight:700;margin-bottom:8px}
-  p{font-size:14px;color:#6b7280;margin-bottom:20px}
-  a{display:inline-block;padding:10px 24px;background:#FF6B00;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px}
+body{
+margin:0;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+font-family:Arial,sans-serif;
+background:#f5f5f5;
+text-align:center;
+}
+
+.box{
+padding:20px;
+}
+
+h2{
+color:#FF6B00;
+}
+
+a{
+display:inline-block;
+margin-top:20px;
+padding:12px 20px;
+background:#FF6B00;
+color:white;
+text-decoration:none;
+border-radius:8px;
+}
 </style>
+
 </head>
+
 <body>
+
 <div class="box">
-  <div class="icon">🔧</div>
-  <h1>MAHADEV AUTO GARAGE</h1>
-  <p>Aap abhi offline hain. Internet connection check karein aur dobara try karein.</p>
-  <a href="/">Try Again</a>
+
+<h2>🔧 MAHADEV AUTO GARAGE</h2>
+
+<p>You are currently offline.</p>
+
+<a href="/Mahadev-garage/">
+Try Again
+</a>
+
 </div>
+
 </body>
-</html>`;
-    }  );
-});
 
-// ---- ACTIVATE: delete old caches ----
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((k) => k !== CACHE_NAME && k !== FONT_CACHE)
-          .map((k) => caches.delete(k))
-      )
-    ).then(() => self.clients.claim())
-  );
-});
-
-// ---- FETCH: smart caching strategy ----
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  const url = new URL(request.url);
-
-  // Skip non-GET and chrome-extension requests
-  if (request.method !== "GET") return;
-  if (url.protocol === "chrome-extension:") return;
-
-  // Google Fonts: cache-first (fonts don't change)
-  if (
-    url.origin === "https://fonts.googleapis.com" ||
-    url.origin === "https://fonts.gstatic.com"
-  ) {
-    event.respondWith(cacheFirst(request, FONT_CACHE));
-    return;
-  }
-
-  // HTML pages: network-first, fall back to cache
-  if (request.headers.get("accept")?.includes("text/html")) {
-    event.respondWith(networkFirstWithFallback(request));
-    return;
-  }
-
-  // JS/CSS/images: stale-while-revalidate
-  event.respondWith(staleWhileRevalidate(request));
-});
-
-// ---- STRATEGIES ----
-
-async function cacheFirst(request, cacheName) {
-  const cache = await caches.open(cacheName);
-  const cached = await cache.match(request);
-  if (cached) return cached;
-  try {
-    const response = await fetch(request);
-    if (response.ok) cache.put(request, response.clone());
-    return response;
-  } catch {
-    return new Response("Offline", { status: 503 });
-  }
+</html>`,
+{
+headers:{
+"Content-Type":"text/html"
 }
-
-async function networkFirstWithFallback(request) {
-  const cache = await caches.open(CACHE_NAME);
-  try {
-    const response = await fetch(request);
-    if (response.ok) cache.put(request, response.clone());
-    return response;
-  } catch {
-    const cached = await cache.match(request);
-    if (cached) return cached;
-    // Fallback to root index.html for any navigation
-    const fallback = await cache.match("/") || await cache.match("/index.html");
-    if (fallback) return fallback;
-    return new Response(offlinePage(), {
-      headers: { "Content-Type": "text/html" },
-    });
-  }
 }
+);
 
-async function staleWhileRevalidate(request) {
-  const cache = await caches.open(CACHE_NAME);
-  const cached = await cache.match(request);
-  const fetchPromise = fetch(request)
-    .then((response) => {
-      if (response.ok) cache.put(request, response.clone());
-      return response;
-    })
-    .catch(() => null);
-  return cached || (await fetchPromise) || new Response("", { status: 503 });
-}
-
-function offlinePage() {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Offline — MAHADEV AUTO GARAGE</title>
-<style>
-  body{font-family:system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#f5f6fa;color:#1a1d2e;text-align:center;padding:20px}
-  .box{max-width:340px}
-  .icon{font-size:64px;margin-bottom:16px}
-  h1{font-size:20px;font-weight:700;margin-bottom:8px}
-  p{font-size:14px;color:#6b7280;margin-bottom:20px}
-  a{display:inline-block;padding:10px 24px;background:#FF6B00;color:#fff;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px}
-</style>
-</head>
-<body>
-<div class="box">
-  <div class="icon">🔧</div>
-  <h1>MAHADEV AUTO GARAGE</h1>
-  <p>Aap abhi offline hain. Internet connection check karein aur dobara try karein.</p>
-  <a href="/">Try Again</a>
-</div>
-</body>
-</html>`;
-}
+        }
