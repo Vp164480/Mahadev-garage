@@ -1,4 +1,4 @@
-const CACHE_NAME = "mahadev-garage-v3";
+const CACHE_NAME = "mahadev-garage-v4";
 const FONT_CACHE = "mahadev-fonts-v1";
 
 const APP_SHELL = [
@@ -23,106 +23,222 @@ const APP_SHELL = [
   "/Mahadev-garage/assets/pin-C2qdixNe.css"
 ];
 
-// INSTALL
+/* =========================
+   INSTALL
+========================= */
+
 self.addEventListener("install", (event) => {
+
   event.waitUntil(
+
     caches.open(CACHE_NAME).then(async (cache) => {
-      await cache.addAll(APP_SHELL);
-      self.skipWaiting();
+
+      for (const file of APP_SHELL) {
+
+        try {
+
+          await cache.add(file);
+          console.log("Cached:", file);
+
+        } catch (error) {
+
+          console.warn("Cache failed:", file, error);
+
+        }
+
+      }
+
+      await self.skipWaiting();
+
     })
+
   );
+
 });
 
-// ACTIVATE
+
+/* =========================
+   ACTIVATE
+========================= */
+
 self.addEventListener("activate", (event) => {
+
   event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
+
+    caches.keys().then((keys) => {
+
+      return Promise.all(
+
         keys
-          .filter((key) => key !== CACHE_NAME && key !== FONT_CACHE)
+          .filter(
+            (key) =>
+              key !== CACHE_NAME &&
+              key !== FONT_CACHE
+          )
           .map((key) => caches.delete(key))
-      )
-    ).then(() => self.clients.claim())
+
+      );
+
+    }).then(() => {
+
+      return self.clients.claim();
+
+    })
+
   );
+
 });
 
-// FETCH
+
+/* =========================
+   FETCH
+========================= */
+
 self.addEventListener("fetch", (event) => {
 
-  if (event.request.method !== "GET") return;
+  if (event.request.method !== "GET") {
+    return;
+  }
 
   const url = new URL(event.request.url);
 
-  // Google Fonts
+  /* Google Fonts */
+
   if (
     url.origin === "https://fonts.googleapis.com" ||
     url.origin === "https://fonts.gstatic.com"
   ) {
-    event.respondWith(cacheFirst(event.request, FONT_CACHE));
+
+    event.respondWith(
+      cacheFirst(
+        event.request,
+        FONT_CACHE
+      )
+    );
+
     return;
   }
 
-  // HTML pages
+
+  /* HTML Pages */
+
   if (event.request.mode === "navigate") {
-    event.respondWith(networkFirst(event.request));
+
+    event.respondWith(
+      networkFirst(event.request)
+    );
+
     return;
   }
 
-  // Other files
-  event.respondWith(staleWhileRevalidate(event.request));
+
+  /* JS / CSS / Images / Other Files */
+
+  event.respondWith(
+    staleWhileRevalidate(event.request)
+  );
+
 });
 
-// CACHE FIRST
+
+/* =========================
+   CACHE FIRST
+========================= */
+
 async function cacheFirst(request, cacheName) {
+
   const cache = await caches.open(cacheName);
 
   const cached = await cache.match(request);
-  if (cached) return cached;
+
+  if (cached) {
+    return cached;
+  }
 
   try {
+
     const response = await fetch(request);
 
-    if (response.ok) {
-      cache.put(request, response.clone());
+    if (response && response.ok) {
+
+      await cache.put(
+        request,
+        response.clone()
+      );
+
     }
 
     return response;
-  } catch {
-    return new Response("", { status: 503 });
+
+  } catch (error) {
+
+    return new Response(
+      "",
+      {
+        status: 503,
+        statusText: "Offline"
+      }
+    );
+
   }
+
 }
 
-// NETWORK FIRST
+
+/* =========================
+   NETWORK FIRST
+========================= */
+
 async function networkFirst(request) {
 
   const cache = await caches.open(CACHE_NAME);
 
   try {
+
     const response = await fetch(request);
 
-    if (response.ok) {
-      cache.put(request, response.clone());
+    if (response && response.ok) {
+
+      await cache.put(
+        request,
+        response.clone()
+      );
+
     }
 
     return response;
 
-  } catch {
+  } catch (error) {
 
     const cached = await cache.match(request);
 
-    if (cached) return cached;
+    if (cached) {
+      return cached;
+    }
 
     const fallback =
-      await cache.match("/Mahadev-garage/index.html") ||
-      await cache.match("/Mahadev-garage/");
+      await cache.match(
+        "/Mahadev-garage/index.html"
+      ) ||
+      await cache.match(
+        "/Mahadev-garage/"
+      );
 
-    if (fallback) return fallback;
+    if (fallback) {
+      return fallback;
+    }
 
     return offlinePage();
+
   }
+
 }
 
-// STALE WHILE REVALIDATE
+
+/* =========================
+   STALE WHILE REVALIDATE
+========================= */
+
 async function staleWhileRevalidate(request) {
 
   const cache = await caches.open(CACHE_NAME);
@@ -130,10 +246,15 @@ async function staleWhileRevalidate(request) {
   const cached = await cache.match(request);
 
   const networkFetch = fetch(request)
-    .then((response) => {
+    .then(async (response) => {
 
       if (response && response.ok) {
-        cache.put(request, response.clone());
+
+        await cache.put(
+          request,
+          response.clone()
+        );
+
       }
 
       return response;
@@ -141,21 +262,66 @@ async function staleWhileRevalidate(request) {
     })
     .catch(() => null);
 
-  return cached || networkFetch;
+
+  if (cached) {
+
+    /* Background update */
+
+    networkFetch.catch(() => {});
+
+    return cached;
+
+  }
+
+
+  const response = await networkFetch;
+
+  if (response) {
+    return response;
+  }
+
+
+  /* Offline और cache में file नहीं */
+
+  return new Response(
+    "Offline - file not available in cache.",
+    {
+      status: 503,
+      statusText: "Offline",
+      headers: {
+        "Content-Type": "text/plain"
+      }
+    }
+  );
+
 }
 
-// OFFLINE PAGE
+
+/* =========================
+   OFFLINE PAGE
+========================= */
+
 function offlinePage() {
 
   return new Response(
+
 `<!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Offline</title>
+
+<meta
+  name="viewport"
+  content="width=device-width,initial-scale=1"
+>
+
+<title>Mahadev Auto Garage - Offline</title>
 
 <style>
+
 body{
 margin:0;
 display:flex;
@@ -184,6 +350,7 @@ color:white;
 text-decoration:none;
 border-radius:8px;
 }
+
 </style>
 
 </head>
@@ -205,11 +372,14 @@ Try Again
 </body>
 
 </html>`,
-{
-headers:{
-"Content-Type":"text/html"
-}
-}
-);
 
-        }
+    {
+      status: 200,
+      headers: {
+        "Content-Type": "text/html; charset=utf-8"
+      }
+    }
+
+  );
+
+  }
